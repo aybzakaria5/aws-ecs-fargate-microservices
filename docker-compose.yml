@@ -1,0 +1,43 @@
+# Run the whole system locally:  docker compose up --build
+# Host ports: auth 3001, orders 3002, notifications 3003  (inside the network every service listens on 3000,
+# exactly like in ECS, where services reach each other at http://auth.services.local:3000 via Cloud Map).
+# ElasticMQ stands in for Amazon SQS.
+services:
+  auth:
+    build: ./services/auth
+    ports: ["3001:3000"]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.6.11
+    ports: ["9324:9324"]
+    volumes:
+      - ./local/elasticmq.conf:/opt/elasticmq.conf:ro
+
+  orders:
+    build: ./services/orders
+    ports: ["3002:3000"]
+    environment:
+      AUTH_URL: http://auth:3000
+      ORDER_EVENTS_QUEUE_URL: http://elasticmq:9324/000000000000/order-events
+      SQS_ENDPOINT: http://elasticmq:9324
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local     # dummy values: ElasticMQ does not check them
+      AWS_SECRET_ACCESS_KEY: local
+      # no DYNAMODB_TABLE -> in-memory store
+    depends_on: [auth, elasticmq]
+
+  notifications:
+    build: ./services/notifications
+    ports: ["3003:3000"]
+    environment:
+      AUTH_URL: http://auth:3000
+      ORDER_EVENTS_QUEUE_URL: http://elasticmq:9324/000000000000/order-events
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_WAIT_SECONDS: "5"
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      # no NOTIFICATIONS_TABLE -> in-memory store
+    depends_on: [auth, elasticmq]
