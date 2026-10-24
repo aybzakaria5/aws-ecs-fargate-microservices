@@ -1,0 +1,84 @@
+name: Deploy to ECS
+
+# Builds each service image, scans it, pushes it to ECR and rolls the ECS service.
+# It needs the infrastructure from infra/ to exist. Until the repository variable AWS_ROLE_ARN is set,
+# the job is skipped, so a repo that is only documented (not deployed) stays green.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write # request the OIDC token used to assume the AWS role
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  NAME: ${{ vars.NAME_PREFIX || 'msvc-demo' }} # "<project>-<environment>" from infra/variables.tf
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.service }}
+    if: ${{ vars.AWS_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, orders, notifications]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}
+        run: docker build -t "$IMAGE" services/${{ matrix.service }}
+
+      - name: Scan image with Trivy (fail on fixable CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push image
+        run: docker push "${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}"
+
+      - name: Download the current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "${NAME}-${{ matrix.service }}" \
+            --query taskDefinition > task-definition.json
+
+      - name: Put the new image into the task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ matrix.service }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}
+
+      - name: Deploy to ECS (rolling update, waits until stable)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ env.NAME }}-${{ matrix.service }}
+          cluster: ${{ env.NAME }}-cluster
+          wait-for-service-stability: true
