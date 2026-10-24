@@ -1,0 +1,20 @@
+{
+  "name": "notifications-service",
+  "version": "1.0.0",
+  "description": "Consumes order events from SQS and serves each user's notifications",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1156.0",
+    "@aws-sdk/client-sqs": "^3.1156.0",
+    "@aws-sdk/lib-dynamodb": "^3.1156.0"
+  }
+}
