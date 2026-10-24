@@ -1,0 +1,17 @@
+# cp terraform.tfvars.example terraform.tfvars   (terraform.tfvars is git-ignored)
+region      = "us-east-1"
+project     = "msvc"
+environment = "demo"
+
+# 1 task per service keeps a demo cheap; 2 gives one task per Availability Zone (high availability)
+desired_count = 2
+
+# --- optional: custom domain with HTTPS (needs an existing Route 53 public hosted zone) ---
+# domain_name     = "api.example.com"
+# route53_zone_id = "Z0123456789ABCDEFGHIJ"
+# (or bring your own certificate instead: acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/...")
+
+# --- optional ---
+# enable_waf  = true                    # AWS WAF on the ALB (monthly cost)
+# alarm_email = "you@example.com"       # e-mail for CloudWatch alarms
+# github_repo = "YOUR-GITHUB-USER/ecs-fargate-microservices"   # creates the OIDC deploy role for GitHub Actions
