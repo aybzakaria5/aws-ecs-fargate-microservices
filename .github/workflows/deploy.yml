@@ -51,7 +51,7 @@ jobs:
         run: docker build -t "$IMAGE" services/${{ matrix.service }}
 
       - name: Scan image with Trivy (fail on fixable CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}
           severity: CRITICAL

@@ -46,7 +46,7 @@ jobs:
       - name: Build image
         run: docker build -t ${{ matrix.service }}:ci services/${{ matrix.service }}
       - name: Scan image with Trivy (fail on fixable CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ matrix.service }}:ci
           severity: CRITICAL
@@ -70,7 +70,7 @@ jobs:
       - run: terraform init -backend=false -input=false
       - run: terraform validate
       - name: IaC misconfiguration scan (report only)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: infra
