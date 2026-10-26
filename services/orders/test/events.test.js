@@ -5,6 +5,11 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 const { createPublisher } = require('../src/events');
 
+// The AWS SDK reads credentials from the process environment (not from the object passed to the adapter).
+// Fake ones keep these tests independent of the machine they run on (CI runners have no AWS credentials).
+process.env.AWS_ACCESS_KEY_ID = 'test';
+process.env.AWS_SECRET_ACCESS_KEY = 'test';
+
 const md5 = (s) => crypto.createHash('md5').update(s).digest('hex');
 
 test('no queue configured -> events are dropped silently', async () => {
