@@ -1,13 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-
+# The Auth service has no npm dependencies (JWT is implemented with node:crypto),
+# so there is no install stage and no node_modules to copy.
 FROM node:22-alpine
 ENV NODE_ENV=production PORT=3000
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY src ./src
 # Run as the unprivileged "node" user that ships with the base image
