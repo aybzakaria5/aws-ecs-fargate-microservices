@@ -40,7 +40,7 @@ Without `domain_name` or `acm_certificate_arn` the ALB serves plain HTTP (demo o
 
 ## Cost warning
 
-These resources bill while they exist, even with no traffic: the five interface endpoints in two AZs, the ALB and the Fargate tasks are the main items (see the cost section of the main README). For a short demo use `desired_count = 1`, set an AWS Budget alert first, and run `terraform destroy` when you are done. The secret and the ECR repositories are configured to be deleted immediately on destroy. After destroying, check the console for leftover VPC endpoints, load balancers and ECS clusters.
+These resources bill while they exist, even with no traffic: the five interface endpoints in two AZs, the ALB and the Fargate tasks are the main items (see [docs/cost.md](../docs/cost.md)). For a short demo use `desired_count = 1`, set an AWS Budget alert first, and run `terraform destroy` when you are done. The secret and the ECR repositories are configured to be deleted immediately on destroy. After destroying, check the console for leftover VPC endpoints, load balancers and ECS clusters.
 
 ## Notes
 
