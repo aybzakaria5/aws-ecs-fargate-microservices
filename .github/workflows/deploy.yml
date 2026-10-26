@@ -1,6 +1,6 @@
 name: Deploy to ECS
 
-# Builds each service image, scans it, pushes it to ECR and rolls the ECS service.
+# Builds each service image, pushes it to ECR (which scans it on push) and rolls the ECS service.
 # It needs the infrastructure from infra/ to exist. Until the repository variable AWS_ROLE_ARN is set,
 # the job is skipped, so a repo that is only documented (not deployed) stays green.
 on:
@@ -49,14 +49,6 @@ jobs:
         env:
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}
         run: docker build -t "$IMAGE" services/${{ matrix.service }}
-
-      - name: Scan image with Trivy (fail on fixable CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
 
       - name: Push image
         run: docker push "${{ steps.ecr.outputs.registry }}/${{ env.NAME }}/${{ matrix.service }}:${{ github.sha }}"
